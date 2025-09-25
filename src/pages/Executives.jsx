@@ -48,9 +48,19 @@ export function Executives({
       return true;
     });
 
-  const dayStartFiltered = filterSheet(dayStartData);
+    const filterSheetWithOutHour = (sheet) =>
+    sheet.filter((row) => {
+      if (row.date !== selectedDate) return false;
+      if (selectedZones[0] !== "All" && !selectedZones.includes(row.zone))
+        return false;
+      if (selectedGm !== "All" && row.gm !== selectedGm) return false;
+      
+      return true;
+    });
+
+  const dayStartFiltered = filterSheetWithOutHour(dayStartData);
   const rspsFiltered = filterSheet(allData);
-  const promisesFiltered = filterSheet(promisesData);
+  const promisesFiltered = filterSheetWithOutHour(promisesData);
   const reliabilityFiltered = filterSheet(reliabilityData);
 
   // ---------- 2. Merge by Zone + GM ----------
@@ -373,7 +383,7 @@ setPromisesData([]);
               rowData.landing = parseFloat(String(row[getHeaderIndexReliability("landing")]).replace(/,/g, '') || 0);
         
         rowData.date = row[getHeaderIndexReliability("date")] || "";
-     rowData.hours = row[getHeaderIndexOfDayStart("hour")] || "";
+     rowData.hours = row[getHeaderIndexReliability("hour")] || "";
         return rowData;
       });
       

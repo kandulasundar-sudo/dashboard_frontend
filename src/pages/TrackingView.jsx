@@ -13,48 +13,56 @@ export const TrackingInfoSearch = () => {
 
     const apiUrl = apiURL + "/api/tracking-data";
 
-    const handleSearch = async () => {
-        if (searchTerm.trim() === "") {
-            alert("Please enter a tracking ID to search.");
+const handleSearch = async () => {
+    if (searchTerm.trim() === "") {
+        alert("Please enter a tracking ID to search.");
+        setFilteredData([]);
+        return;
+    }
+
+    try {
+        setLoading(true);
+        setError(null);
+        // Correctly pass the search term with multiple IDs
+        const searchUrl = `${apiUrl}?tracking_id=${encodeURIComponent(searchTerm.trim())}`;
+        const response = await fetch(searchUrl);
+        const rawData = await response.json();
+
+        // Check for specific error from the API
+        if (response.status === 404) {
             setFilteredData([]);
+            alert("No records found for the specified tracking ID(s).");
             return;
         }
 
-        try {
-            setLoading(true);
-            setError(null);
-            const searchUrl = `${apiUrl}?tracking_id=${encodeURIComponent(
-                searchTerm.trim()
-            )}`;
-            const response = await fetch(searchUrl);
-            const rawData = await response.json();
-
-            if (!rawData || !rawData.values || rawData.values.length < 2) {
-                setFilteredData([]);
-                alert("No records found for the specified tracking ID.");
-                return;
-            }
-
-            const headersFromApi = rawData.values[0].map((h) => h.trim());
-            const valuesFromApi = rawData.values[1];
-
-            const formattedData = [
-                headersFromApi.reduce((acc, header, index) => {
-                    acc[header] = valuesFromApi[index];
-                    return acc;
-                }, {}),
-            ];
-
-            setHeaders(headersFromApi);
-            setFilteredData(formattedData);
-        } catch (err) {
-            setError("Error fetching data: " + err.message);
+        // Check for data integrity
+        if (!rawData || !rawData.values || rawData.values.length < 2) {
             setFilteredData([]);
-        } finally {
-            setLoading(false);
+            alert("Unexpected response format. Please try again.");
+            return;
         }
-    };
 
+        const headersFromApi = rawData.values[0].map((h) => h.trim());
+        const dataRows = rawData.values.slice(1); // Get all data rows starting from index 1
+
+        // Use map to format each row of data into an object
+        const formattedData = dataRows.map(row => {
+            const resultObject = {};
+            headersFromApi.forEach((header, index) => {
+                resultObject[header] = row[index];
+            });
+            return resultObject;
+        });
+
+        setHeaders(headersFromApi);
+        setFilteredData(formattedData);
+    } catch (err) {
+        setError("Error fetching data: " + err.message);
+        setFilteredData([]);
+    } finally {
+        setLoading(false);
+    }
+};
     return (
         <div className="tracking-container">
             <div className="search-section">
